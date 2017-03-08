@@ -1,0 +1,17 @@
+---
+title: "Motor Trend Car Road Tests - Effects of transmission on MPG"
+author: "Tanguy Levent"
+date: "8 mars 2017"
+output: pdf_document
+---
+
+Github account for the scripts : https://github.com/TanguyLevent
+
+## Synopsis
+
+The data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models). We are going to analyze and select the predictors of our dataset by AIC method (Akaike Information Criterion) to regressing the fuel consumption - unit *miles per gallon (MPG)*. 
+
+The questions of our researches are :  
+
+- Is an automatic or manual transmission better for MPG?
+- Quantifying how different is the MPG between automatic and manual transmissions?
