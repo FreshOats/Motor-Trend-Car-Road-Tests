@@ -2,16 +2,134 @@
 title: "Motor Trend Car Road Tests - Effects of transmission on MPG"
 author: "Tanguy Levent"
 date: "8 mars 2017"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 Github account for the scripts : https://github.com/TanguyLevent
 
-## Synopsis
+# Synopsis
 
-The data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models). We are going to analyze and select the predictors of our dataset by AIC method (Akaike Information Criterion) to regressing the fuel consumption - unit *miles per gallon (MPG)*. 
+The data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models). We are going to analyze and select the predictors of our data set by AIC method (Akaike Information Criterion) to regressing the fuel consumption - unit *miles per gallon (MPG)*. 
 
 The questions of our researches are :  
 
 - Is an automatic or manual transmission better for MPG?
-- Quantifying how different is the MPG between automatic and manual transmissions?
+- Quantifying how different is the MPG between automatic and manual transmissions?  
+
+# Data Processing  
+
+Please install the R package **PerformanceAnalytics** if you don't have it : ```install.packages("PerformanceAnalytics") ```. Then call `mtcars` data set, verify there are no missing values and compute simply summaries to have an idea of the variables inside.  
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(PerformanceAnalytics)
+
+data("mtcars")
+sum(is.na(mtcars))
+
+head(mtcars)
+str(mtcars)
+```  
+
+Looking at the data, we find our 10 automobile performances for 32 automobiles.  
+Please find the explanation of the variables on the original documentation website: https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/mtcars.html
+
+
+# Exploratory analysis  
+
+First I used to plot a chart correlation in order to have a general view of our variables and the link they have with each other.  
+
+```{r message=FALSE, warning=FALSE, echo=FALSE, fig.align="center"}
+chart.Correlation(mtcars, histogram=TRUE, pch=19)
+```  
+
+Conspicuously there are variables which are related with the response `mpg` : 
+
+- `cyl` which is in fact a factor variable
+- `disp`
+- `hp`
+- `drat`
+- `wt`
+- `vs` which is in fact a factor variable
+- `am` which is in fact a factor variable  
+
+To finish this part, we arrange our dataset with all the informations that we have processing before.  
+
+```{r message=FALSE, warning=FALSE}
+mdata <- mtcars %>% select(mpg,cyl,disp,hp,drat,wt,vs,am)
+mdata$cyl <- factor(mdata$cyl)
+mdata$vs <- factor(mdata$vs)
+mdata$am = factor(mdata$am, labels = c("Automatic","Manual"))
+```  
+
+# Statistical inference  
+
+The purpose of our analyze is to focus on the relationship between mpg and am. The first way to look at it is to perform a hypothesis test by test the *null hypothesis* : 
+
+1. $H_0$ : There is no relationship between MPG and the transmission (am) 
+
+versus the *alternative hypothesis* :  
+
+2. $H_\alpha$ : There is some relationship between MPG and the transmission (am) 
+
+Below the computation of the *t-statistic* and his associate result :  
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+test <- t.test(mpg~am, paired = FALSE, var.equal = FALSE, mdata)
+```  
+```{r message=FALSE, warning=FALSE}
+test$p.value
+test$estimate
+```
+
+The *t table* with *n* $=$ 32 observations give me a cutoffs around 2.5$\%$. Here we have a p-value equals to 0.1 $\%$, largely small enough to *reject the null hypothesis* and assure there is an association between the predictor `am` and the response `mpg`. The result of the mean tells us that automatic is better for the fuel consumption than manual 
+transmission.  
+
+# Regression linear  
+
+Once we have rejected the null hypothesis in favor of the alternative hypothesis, it is natural to want to quantify *the extent to which the model fits the data* with the Residual Standard Error (RSE ou $\epsilon$)  even if it not always clear what constitutes a good RSE. Hence we also use $R^2$ statistics provides an alternative measure of fit. It takes the form of a *proportion* - the proportion of variability that can be explained using $X$. A number near 0 indicates that the regression did not explain much of the variability in the response.
+
+Mathematically the linear relationship can be write as : $$MPG \approx \beta_0 + \beta_1 \times am + \epsilon$$
+
+where $\epsilon$ is the error term. Let's write the linear regression r code :  
+  
+```{r message=FALSE, warning=FALSE}
+mpg.lm.am <- lm(mpg ~ am, mdata)
+```
+that gives us the RSE and $R^2$ :  
+
+```{r message=FALSE, warning=FALSE}
+round(sigma(mpg.lm.am),2)
+round(summary(mpg.lm.am)$adj.r.squared,3)
+```  
+
+In other words, actual mpg deviate from the true regression line by approximately $4,9$ on average and 34% variation of the fuel consumption is explained by the transmission - that is not enought.
+
+Previously we have list the variables related to `mpg`. Let's see if we can draw a better model by adding one or more of these variables. In order to not testing the 127 combinaisons I use the ```step``` function which is based on AIC method.
+```{r message=FALSE, warning=FALSE}
+mpg.lm.global <- lm(mpg ~ ., mdata)
+mpg.lm.selection <- step(mpg.lm.global, direction = "both", trace=FALSE)
+mpg.lm.selection$call
+```
+
+The powerful of this function gives us instantly the best model to fit the regression.
+Now we write the RSE and $R^2$ of our new multiple linear regression model fit by AIC method.
+
+```{r message=FALSE, warning=FALSE}
+round(sigma(mpg.lm.selection),2)
+round(summary(mpg.lm.selection)$adj.r.squared,3)
+```
+
+It's bear no comparison with the previous simple linear regression with the only one predictor `am`. The RSE is halved
+and the $R^2$ imply that now 84% of our predictors explained the variation of our response `mpg`. It's quite well!
+To finish this part of the data set analysis we are going to use the `anova` function which performs a hypothesis test comparing the two models. The null hypothesis is that the two models fit the data equally well, and the alternative hypothesis is that the full model is superior.
+
+```{r message=FALSE, warning=FALSE}
+anova(mpg.lm.selection,mpg.lm.am)
+```
+
+Here we have a F-statistic equals to $24,5$ and a p-value near to zero that confirm an improvement in the model fit by adding more variables. Now the Mathematical linear relationship can be write as :
+$$MPG \approx \beta_0 + \beta_1 \times am + \beta_2 \times cyl + \beta_3 \times hp + \beta_4 \times wt + \epsilon$$
+
