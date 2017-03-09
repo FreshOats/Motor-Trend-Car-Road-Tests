@@ -3,8 +3,8 @@ title: "Motor Trend Car Road Tests - Effects of transmission on MPG"
 author: "Tanguy Levent"
 date: "8 mars 2017"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 Github account for the scripts : https://github.com/TanguyLevent
@@ -20,7 +20,7 @@ The questions of our researches are :
 
 # Data Processing  
 
-Please install the R package **PerformanceAnalytics** if you don't have it : ```install.packages("PerformanceAnalytics") ```. Then call `mtcars` data set, verify there are no missing values and compute simply summaries to have an idea of the variables inside.  
+Please install the R package **PerformanceAnalytics** if you don't have it : ```install.packages("PerformanceAnalytics") ```. Then call `mtcars` data set, verify there are no missing values and compute basic summaries to have an idea of the variables inside.  
 
 ```{r message=FALSE, warning=FALSE}
 library(dplyr)
@@ -33,8 +33,8 @@ head(mtcars)
 str(mtcars)
 ```  
 
-Looking at the data, we find our 10 automobile performances for 32 automobiles.  
-Please find the explanation of the variables on the original documentation website: https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/mtcars.html
+Looking at the data, we find our 10 automobile performances and 32 different automobiles.  
+Please find the explanation of the variables on the original documentation website: https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/mtcars.html or use the command **?mtcars**.
 
 
 # Exploratory analysis  
@@ -105,9 +105,9 @@ round(sigma(mpg.lm.am),2)
 round(summary(mpg.lm.am)$adj.r.squared,3)
 ```  
 
-In other words, actual mpg deviate from the true regression line by approximately $4,9$ on average and 34% variation of the fuel consumption is explained by the transmission - that is not enought.
+In other words, actual mpg deviate from the true regression line by approximately $4,9$ on average and 34% variation of the fuel consumption is explained by the transmission - that is not enough.
 
-Previously we have list the variables related to `mpg`. Let's see if we can draw a better model by adding one or more of these variables. In order to not testing the 127 combinaisons I use the ```step``` function which is based on AIC method.
+Previously we have list the variables related to `mpg`. Let's see if we can draw a better model by adding one or more of these variables. In order to not testing the 127 combinaisons possible one by one, I use the ```step``` function which is based on AIC method and make the work for us.  
 ```{r message=FALSE, warning=FALSE}
 mpg.lm.global <- lm(mpg ~ ., mdata)
 mpg.lm.selection <- step(mpg.lm.global, direction = "both", trace=FALSE)
@@ -122,14 +122,50 @@ round(sigma(mpg.lm.selection),2)
 round(summary(mpg.lm.selection)$adj.r.squared,3)
 ```
 
-It's bear no comparison with the previous simple linear regression with the only one predictor `am`. The RSE is halved
+It's bear no comparison with the previous simple linear regression. The RSE is halved 
 and the $R^2$ imply that now 84% of our predictors explained the variation of our response `mpg`. It's quite well!
 To finish this part of the data set analysis we are going to use the `anova` function which performs a hypothesis test comparing the two models. The null hypothesis is that the two models fit the data equally well, and the alternative hypothesis is that the full model is superior.
 
 ```{r message=FALSE, warning=FALSE}
-anova(mpg.lm.selection,mpg.lm.am)
+anova(mpg.lm.am,mpg.lm.selection)
 ```
 
 Here we have a F-statistic equals to $24,5$ and a p-value near to zero that confirm an improvement in the model fit by adding more variables. Now the Mathematical linear relationship can be write as :
 $$MPG \approx \beta_0 + \beta_1 \times am + \beta_2 \times cyl + \beta_3 \times hp + \beta_4 \times wt + \epsilon$$
+  
+\pagebreak  
 
+# Potential Problems : Residuals
+
+Residuals are leftover of the outcome variable after fitting a model (predictors) to data and they could reveal unexplained patterns in the data by the fitted model. Using this information, not only could you check if linear regression assumptions are met, but you could improve your model in an exploratory way. To realize the diagnostic we need to use the `plot(model)` function which shows us four different ways to understand our residuals and/or fitting.  
+
+```{r message=FALSE, warning=FALSE,echo=FALSE, fig.align="center"}
+par(mfrow=c(2,2))
+plot(mpg.lm.selection)
+```  
+
+#### *1. Non linearity of the Data : Residuals vs Fitted*  
+
+At the top left in the figures above, the plot shows no discernible pattern and the residuals no exhibit a
+clear U-shape which provide a strong indication of well linearity in the data and our model improve the fit.  
+
+#### *2. Non-constant Variance of Error Terms : Residuals vs Fitted*  
+
+At the top left in the figures above, the plot shows no heteroscedasticity from no presence of a *funnel shope* in the residual plot. If we have found this kind of shape then we would have tried to solve the problem by using a log or a square root on the response.  
+
+#### *3. Non Normal Distribution of the Residual : Normal Q-Q*  
+
+At the top right in the figures above, the plot shows no residuals deviate so much of the straight dashed line. Hence the residuals follow a normal distribution.  
+
+#### *3. Outliers : Scale-Location*  
+
+At the bottom left in the figures above, the plot shows the *studentized residuals* to check the assumption of homoscedasticity computed by dividing each residual by its estimated standard error. Observations whose studentized residuals are greater than 3 in absolute value are possible outliers. However, care should be taken, since an outlier may instead indicate a deficiency with the model, such as a missing predictor.  
+Here the scale-location plot confirms the constant variance assumption, as the points are randomly distributed and no outliers in the observations.
+
+#### *4. High Leverage Points : Residuals vs Leverage*  
+
+We are just looking at the plot to confirm or not outliers can influence our regression. As all the values fall under the Cook's distance and the leverage value are low we can assume that no obervations influence the fit regression.  
+
+# Conclusion  
+
+Related to our previous analyzes we have conclude that the transmission influence the fuel consumption and an automatic is better than a manual transmission. But tansmission is not the only one predictor which permit to fit a linear regression. Hence we have fit a multiple linear regression and have found with the AIC method that the number of cylinders, the gross horsepower, the weight and the transmission are the best predictors to fitting linear regression with a very small p-value and an important $R^2$ of 84%. Finally our last researches don't gives us enough evidences that outliers are included inside the observations.

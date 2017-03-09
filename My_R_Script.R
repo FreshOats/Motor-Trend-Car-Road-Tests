@@ -37,5 +37,12 @@ mpg.lm.selection <- step(mpg.lm.global, direction = "both", trace=FALSE)
 round(sigma(mpg.lm.selection),2)
 round(summary(mpg.lm.selection)$adj.r.squared,3)
 
-anova(mpg.lm.selection,mpg.lm.am)
+anova(mpg.lm.am,mpg.lm.selection)
+
+# Potential Problems 
+
+par(mfrow=c(2,2))
+plot(mpg.lm.selection)
+
+sum(dfbetas(mpg.lm.selection) > 0.5)
 
